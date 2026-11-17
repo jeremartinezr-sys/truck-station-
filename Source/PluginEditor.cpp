@@ -29,7 +29,7 @@ TruckStationAudioProcessorEditor::TruckStationAudioProcessorEditor(TruckStationA
         s->setTextBoxStyle(juce::Slider::TextBoxBelow, false, 72, 18);
         s->setColour(juce::Slider::rotarySliderFillColourId, acid);
         s->setColour(juce::Slider::thumbColourId, orange);
-        s->setColour(juce::Slider::rotarySliderOutlineColourId, 0xff4c535c);
+        s->setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colour(0xff4c535c));
         s->setColour(juce::Slider::textBoxTextColourId, silver);
         s->setColour(juce::Slider::textBoxBackgroundColourId, bg);
         s->setColour(juce::Slider::textBoxOutlineColourId, panel2);
