@@ -1,0 +1,30 @@
+name: Build VST3
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Package VST3
+        shell: pwsh
+        run: |
+          $v = Get-ChildItem build -Recurse -Directory -Filter "*.vst3" | Select-Object -First 1
+          if (-not $v) { throw "No se genero ningun .vst3" }
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item $v.FullName dist -Recurse
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TRUCK_STATION_VST3
+          path: dist
