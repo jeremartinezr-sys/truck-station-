@@ -1,181 +1,159 @@
 #include "PluginEditor.h"
 
+namespace
+{
+const juce::Colour bg(0xff111419), panel(0xff20252c), panel2(0xff2b3139);
+const juce::Colour silver(0xffc8d0d8), acid(0xffb8f35b), orange(0xffff8a38), purple(0xffa98bff);
+}
+
 TruckStationAudioProcessorEditor::TruckStationAudioProcessorEditor(TruckStationAudioProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p)
+ : AudioProcessorEditor(&p), audioProcessor(p)
 {
-    setSize(820, 590);
-    addKnob(attack, "ATTACK"); addKnob(release, "RELEASE");
-    addKnob(color, "COLOR"); addKnob(dust, "DUST");
-    addKnob(space, "SPACE"); addKnob(wobble, "WOBBLE");
-    addKnob(drive, "DRIVE"); addKnob(sampleMix, "SAMPLE MIX");
+    setSize(900, 650);
+    title.setText("TRUCK STATION", juce::dontSendNotification);
+    title.setFont(juce::Font(juce::FontOptions(30.0f, juce::Font::bold)));
+    title.setColour(juce::Label::textColourId, silver);
+    addAndMakeVisible(title);
+    subtitle.setText("SOUND SYSTEM 002  //  SYNTHESIS ONLY  //  NO SAMPLES", juce::dontSendNotification);
+    subtitle.setFont(juce::Font(juce::FontOptions(11.0f, juce::Font::bold)));
+    subtitle.setColour(juce::Label::textColourId, acid);
+    addAndMakeVisible(subtitle);
+    status.setText("TRUCK CAT: LISTENING", juce::dontSendNotification);
+    status.setColour(juce::Label::textColourId, acid);
+    addAndMakeVisible(status);
 
-    const juce::StringArray names {
-        "01 - Sleepy Keys", "02 - Bubblegum Pad", "03 - Dusty Pluck",
-        "04 - Broken Toy", "05 - Cloud Window", "06 - Rainy Internet",
-        "07 - Pixel Soup", "08 - Tiny Robot", "09 - Tape Ghost",
-        "10 - Plastic Thunder", "11 - Jelly Bass", "12 - Dream Printer",
-        "13 - VHS Melt", "14 - Wobbly Room", "15 - Alien Gum",
-        "16 - Basement FM", "17 - Soft Arcade", "18 - Ghost Frequency",
-        "19 - Rubber Lead", "20 - Cat Nap", "21 - Digital Puddle",
-        "22 - Rusty Bells", "23 - Night Bus", "24 - Weird Angel",
-        "25 - Crushed Candy", "26 - Melted Arcade", "27 - Toybox Choir",
-        "28 - Cloudy Keys", "29 - Plastic Dreams", "30 - Random Toybox"
-    };
-    presets.addItemList(names, 1);
-    presets.setSelectedId(1);
-    presets.setColour(juce::ComboBox::backgroundColourId, juce::Colour(0xfffff8e9));
-    presets.setColour(juce::ComboBox::textColourId, juce::Colour(0xff493d59));
-    presets.setColour(juce::ComboBox::outlineColourId, juce::Colour(0xffc8b2d0));
-    presets.onChange = [this] { audioProcessor.setPreset(presets.getSelectedId() - 1); };
-    addAndMakeVisible(presets);
-
-    addAndMakeVisible(loadSample);
-    loadSample.setColour(juce::TextButton::buttonColourId, juce::Colour(0xfff3c978));
-    loadSample.setColour(juce::TextButton::textColourOffId, juce::Colour(0xff493d59));
-    loadSample.onClick = [this]
+    auto add = [this](const juce::String& name, const juce::String& id, int x, int y)
     {
-        chooser = std::make_unique<juce::FileChooser>("Choose a sample", juce::File{}, "*.wav;*.aif;*.aiff;*.flac;*.ogg");
-        chooser->launchAsync(juce::FileBrowserComponent::openMode
-                           | juce::FileBrowserComponent::canSelectFiles,
-            [this](const juce::FileChooser& fc)
-            {
-                const auto file = fc.getResult();
-                if (file.existsAsFile() && audioProcessor.loadSample(file))
-                    sampleName.setText(audioProcessor.getSampleName(), juce::dontSendNotification);
-            });
+        auto s = std::make_unique<juce::Slider>();
+        s->setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+        s->setTextBoxStyle(juce::Slider::TextBoxBelow, false, 72, 18);
+        s->setColour(juce::Slider::rotarySliderFillColourId, acid);
+        s->setColour(juce::Slider::thumbColourId, orange);
+        s->setColour(juce::Slider::rotarySliderOutlineColourId, 0xff4c535c);
+        s->setColour(juce::Slider::textBoxTextColourId, silver);
+        s->setColour(juce::Slider::textBoxBackgroundColourId, bg);
+        s->setColour(juce::Slider::textBoxOutlineColourId, panel2);
+        addAndMakeVisible(*s);
+        auto l = std::make_unique<juce::Label>();
+        l->setText(name, juce::dontSendNotification);
+        l->setJustificationType(juce::Justification::centred);
+        l->setColour(juce::Label::textColourId, silver);
+        l->setFont(juce::Font(juce::FontOptions(10.5f, juce::Font::bold)));
+        addAndMakeVisible(*l);
+        attachments.push_back(std::make_unique<SliderAttachment>(audioProcessor.parameters, id, *s));
+        sliders.add(s.release()); labels.add(l.release());
     };
 
-    addAndMakeVisible(sampleName);
-    sampleName.setText(audioProcessor.getSampleName(), juce::dontSendNotification);
-    sampleName.setColour(juce::Label::textColourId, juce::Colour(0xff51455d));
-    sampleName.setJustificationType(juce::Justification::centredLeft);
-    sampleName.setFont(juce::Font(13.0f, juce::Font::bold));
+    // The first page presents the essential performance controls.
+    add("ATTACK","attack",0,0); add("DECAY","decay",0,0);
+    add("SUSTAIN","sustain",0,0); add("RELEASE","release",0,0);
+    add("CUTOFF","cutoff",0,0); add("RESONANCE","resonance",0,0);
+    add("WAVEFORM","waveform",0,0); add("FM","fm",0,0);
+    add("SUB","sub",0,0); add("DETUNE","detune",0,0);
+    add("DRIVE","drive",0,0); add("LFO RATE","lfoSpeed",0,0);
+    add("LFO AMOUNT","lfoAmount",0,0); add("WT SHAPE","wavetable",0,0);
+    add("REVERB","reverb",0,0); add("CHORUS","chorus",0,0);
+    add("OUTPUT","output",0,0); add("CHAOS","chaos",0,0);
 
-    wave.addItemList(juce::StringArray{"SINE", "TRI", "SAW", "SQUARE"}, 1);
-    wave.setColour(juce::ComboBox::backgroundColourId, juce::Colour(0xfffff8e9));
-    wave.setColour(juce::ComboBox::textColourId, juce::Colour(0xff493d59));
-    wave.setColour(juce::ComboBox::outlineColourId, juce::Colour(0xffc8b2d0));
-    addAndMakeVisible(wave);
-    waveAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
-        audioProcessor.parameters, "wave", wave);
-
-    applyAttachments();
-    startTimerHz(12);
+    for (auto* b : { &mutateButton, &chaosButton, &randomButton })
+    {
+        b->setColour(juce::TextButton::buttonColourId, panel2);
+        b->setColour(juce::TextButton::textColourOffId, acid);
+        b->setColour(juce::TextButton::buttonOnColourId, orange);
+        addAndMakeVisible(*b);
+    }
+    mutateButton.onClick = [this] { audioProcessor.randomizeSound(0.25f); };
+    chaosButton.onClick = [this]
+    {
+        auto* p = audioProcessor.parameters.getParameter("chaos");
+        const float now = audioProcessor.parameters.getRawParameterValue("chaos")->load();
+        p->setValueNotifyingHost(p->convertTo0to1(now > 0.05f ? 0.0f : 0.75f));
+    };
+    randomButton.onClick = [this] { audioProcessor.randomizeSound(1.0f); };
+    startTimerHz(24);
 }
 
-void TruckStationAudioProcessorEditor::addKnob(juce::Slider& s, const juce::String& name)
+TruckStationAudioProcessorEditor::~TruckStationAudioProcessorEditor() { stopTimer(); }
+
+void TruckStationAudioProcessorEditor::timerCallback()
 {
-    addAndMakeVisible(s);
-    s.setName(name);
-    s.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    s.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 66, 19);
-    s.setColour(juce::Slider::rotarySliderFillColourId, juce::Colour(0xff9a75c5));
-    s.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colour(0xffd8c6df));
-    s.setColour(juce::Slider::thumbColourId, juce::Colour(0xfff0b96e));
-    s.setColour(juce::Slider::textBoxTextColourId, juce::Colour(0xff493d59));
-    s.setColour(juce::Slider::textBoxOutlineColourId, juce::Colour(0x00000000));
+    activity = juce::jmax(audioProcessor.getOutputActivity(), activity * 0.88f);
+    ++blink;
+    status.setText(activity > 0.015f ? "TRUCK CAT: HEARING SOMETHING..." : "TRUCK CAT: WAITING FOR NOISE", juce::dontSendNotification);
+    repaint();
 }
 
-void TruckStationAudioProcessorEditor::applyAttachments()
+void TruckStationAudioProcessorEditor::drawCat(juce::Graphics& g, juce::Rectangle<float> r, float energy)
 {
-    const char* ids[] = {"attack","release","color","dust","space","wobble","drive","sampleMix"};
-    juce::Slider* sliders[] = {&attack,&release,&color,&dust,&space,&wobble,&drive,&sampleMix};
-    for (int i = 0; i < 8; ++i)
-        attachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            audioProcessor.parameters, ids[i], *sliders[i]);
+    auto cx = r.getCentreX(), cy = r.getCentreY();
+    float wobble = std::sin((float)blink * 0.12f) * 2.0f + energy * 12.0f;
+    juce::Path body;
+    body.startNewSubPath(cx-48,cy+45); body.quadraticTo(cx-63,cy-5,cx-30,cy-39);
+    body.lineTo(cx-38,cy-75); body.lineTo(cx-8,cy-54);
+    body.quadraticTo(cx+18,cy-64,cx+37,cy-43);
+    body.lineTo(cx+52,cy-68); body.lineTo(cx+57,cy-15);
+    body.quadraticTo(cx+68,cy+45,cx+20,cy+58);
+    body.quadraticTo(cx-25,cy+68,cx-48,cy+45);
+    g.setColour(juce::Colour(0xff9b83ae)); g.fillPath(body);
+    g.setColour(juce::Colour(0xffd8c6e5)); g.fillEllipse(cx-31,cy-37,13,25);
+    g.fillEllipse(cx+27,cy-35,12,24);
+    g.setColour(juce::Colour(0xff111419));
+    g.fillEllipse(cx-20-wobble*0.15f,cy-4,8,12);
+    g.fillEllipse(cx+21+wobble*0.15f,cy-6,8,12);
+    g.setColour(orange);
+    juce::Path nose; nose.addTriangle(cx-4,cy+18,cx+5,cy+18,cx,cy+25); g.fillPath(nose);
+    g.setColour(juce::Colour(0xff302538));
+    g.drawLine(cx,cy+25,cx-13,cy+34,2.0f); g.drawLine(cx,cy+25,cx+14,cy+33,2.0f);
+    if (energy > 0.08f)
+    {
+        g.setColour(acid.withAlpha(0.65f));
+        g.drawEllipse(cx-67-energy*15,cy-84-energy*12,134+energy*30,165+energy*24,2.0f);
+    }
 }
 
 void TruckStationAudioProcessorEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(0xfffff0d8));
-    g.setColour(juce::Colour(0xffe7d7ed));
-    g.fillRoundedRectangle(16, 16, 788, 558, 25);
-    g.setColour(juce::Colour(0xffb99acb));
-    g.drawRoundedRectangle(16, 16, 788, 558, 25, 3);
-
-    g.setColour(juce::Colour(0xff51415f));
-    g.setFont(juce::Font("Arial Rounded MT Bold", 30.0f, juce::Font::bold));
-    g.drawText("TRUCK STATION", 38, 28, 430, 40, juce::Justification::left);
-    g.setFont(juce::Font(11.0f, juce::Font::bold));
-    g.drawText("PLASTIC SOUND LIBRARY  •  INSTRUMENT BUILD 001", 40, 68, 420, 18, juce::Justification::left);
-
-    g.setColour(juce::Colour(0xfffff8e9));
-    g.fillRoundedRectangle(38, 100, 540, 74, 15);
-    g.setColour(juce::Colour(0xffc8b2d0));
-    g.drawRoundedRectangle(38, 100, 540, 74, 15, 2);
-    g.setColour(juce::Colour(0xff51415f));
-    g.setFont(juce::Font(13.0f, juce::Font::bold));
-    g.drawText("PRESET LIBRARY", 54, 106, 180, 20, juce::Justification::left);
-
-    // Clay cat mascot, drawn directly in JUCE and gently bobbing/blinking.
-    const float bob = std::sin(catPhase) * 3.0f;
-    g.setColour(juce::Colour(0xfffff8e9));
-    g.fillRoundedRectangle(602, 100, 180, 220, 18);
-    g.setColour(juce::Colour(0xffc8b2d0));
-    g.drawRoundedRectangle(602, 100, 180, 220, 18, 2);
-    g.setColour(juce::Colour(0xffb7a0c9));
-    g.fillEllipse(645, 151 + bob, 95, 92);
-    juce::Path ears;
-    ears.addTriangle(648, 181 + bob, 655, 133 + bob, 684, 166 + bob);
-    ears.addTriangle(700, 166 + bob, 733, 135 + bob, 738, 185 + bob);
-    g.fillPath(ears);
-    g.setColour(juce::Colour(0xffe6c2d2));
-    g.fillEllipse(658, 148 + bob, 12, 22);
-    g.fillEllipse(716, 148 + bob, 12, 22);
-    g.setColour(juce::Colour(0xff493d59));
-    if (blink)
+    g.fillAll(bg);
+    g.setColour(panel2);
+    for (int x=0;x<getWidth();x+=24) g.drawVerticalLine(x,0.0f,(float)getHeight());
+    for (int y=0;y<getHeight();y+=24) g.drawHorizontalLine(y,0.0f,(float)getWidth());
+    g.setColour(silver); g.drawRoundedRectangle(12,12,(float)getWidth()-24,(float)getHeight()-24,12,1.2f);
+    g.setColour(acid); g.drawLine(24,91,(float)getWidth()-24,91,2.0f);
+    auto catArea = juce::Rectangle<float>((float)getWidth()-190,125,150,170);
+    g.setColour(panel); g.fillRoundedRectangle(catArea.expanded(10),8);
+    g.setColour(orange); g.drawRoundedRectangle(catArea.expanded(10),8,1.0f);
+    drawCat(g,catArea,activity);
+    g.setColour(silver);
+    g.setFont(juce::Font(juce::FontOptions(10.0f,juce::Font::bold)));
+    g.drawFittedText("TRUCK CAT // AUDIO REACTIVE", (int)catArea.getX()-10, 302, 170, 18, juce::Justification::centred, 1);
+    g.setColour(acid.withAlpha(0.8f));
+    for (int i=0;i<9;++i)
     {
-        g.drawLine(670, 190 + bob, 685, 190 + bob, 3);
-        g.drawLine(708, 190 + bob, 723, 190 + bob, 3);
+        float a = (float)i/8.0f;
+        g.fillEllipse(35.0f+i*13.0f, getHeight()-36.0f, 5.0f, 5.0f + activity*18.0f*a);
     }
-    else
-    {
-        g.fillEllipse(673, 184 + bob, 7, 11);
-        g.fillEllipse(711, 184 + bob, 7, 11);
-    }
-    g.setColour(juce::Colour(0xffd98c9b));
-    juce::Path nose;
-    nose.addTriangle(691, 201 + bob, 699, 201 + bob, 695, 207 + bob);
-    g.fillPath(nose);
-    g.setColour(juce::Colour(0xff77627f));
-    g.drawLine(695, 207 + bob, 695, 214 + bob, 1.5f);
-    g.drawLine(695, 214 + bob, 687, 218 + bob, 1.5f);
-    g.drawLine(695, 214 + bob, 703, 218 + bob, 1.5f);
-    g.setFont(juce::Font(12.0f, juce::Font::bold));
-    g.drawText("mrrp... choose a sound", 611, 278, 162, 22, juce::Justification::centred);
-
-    g.setColour(juce::Colour(0xff51415f));
-    g.setFont(juce::Font(15.0f, juce::Font::bold));
-    g.drawText("THE CLAY CONTROLS", 40, 205, 300, 24, juce::Justification::left);
-    g.setFont(juce::Font(11.0f));
-    g.drawText("Shape the sound. Break it. Make something new.", 40, 228, 440, 18, juce::Justification::left);
-    g.drawText("KEYS  •  SYNTHS  •  BASS  •  TEXTURES  •  ODD TOYS", 40, 535, 550, 18, juce::Justification::left);
-    g.drawText("TRUCK STATION AUDIO TOYS", 40, 552, 300, 14, juce::Justification::left);
+    g.setColour(orange);
+    g.setFont(juce::Font(juce::FontOptions(9.0f,juce::Font::bold)));
+    g.drawText("Y2K TRIBAL SYNTHESIS UNIT  //  BUILD 002",24,getHeight()-22,getWidth()-48,12,juce::Justification::centredLeft);
 }
 
 void TruckStationAudioProcessorEditor::resized()
 {
-    presets.setBounds(54, 130, 500, 30);
-
-    // Columna derecha, debajo del gato (antes el boton se superponia con los knobs).
-    loadSample.setBounds(602, 335, 180, 36);
-    sampleName.setBounds(602, 376, 180, 28);
-    wave.setBounds(602, 414, 180, 30);
-
-    const int y1 = 250, y2 = 385, w = 105, h = 125;
-    attack.setBounds(35, y1, w, h);
-    release.setBounds(145, y1, w, h);
-    color.setBounds(255, y1, w, h);
-    dust.setBounds(365, y1, w, h);
-    space.setBounds(35, y2, w, h);
-    wobble.setBounds(145, y2, w, h);
-    drive.setBounds(255, y2, w, h);
-    sampleMix.setBounds(365, y2, w, h);
-}
-
-void TruckStationAudioProcessorEditor::timerCallback()
-{
-    catPhase += 0.16f;
-    blink = random.nextInt(26) == 0;
-    repaint(625, 125, 140, 175);
+    title.setBounds(28,20,430,42);
+    subtitle.setBounds(30,62,500,20);
+    status.setBounds(getWidth()-260,60,230,20);
+    auto area = juce::Rectangle<int>(24, 112, getWidth()-48, getHeight()-205);
+    area.removeFromRight(185);
+    const int cols=4, rows=5, cellW=area.getWidth()/cols, cellH=area.getHeight()/rows;
+    for (int i=0;i<sliders.size();++i)
+    {
+        int row=i/cols, col=i%cols;
+        auto x=area.getX()+col*cellW, y=area.getY()+row*cellH;
+        labels[i]->setBounds(x,y,cellW,18);
+        sliders[i]->setBounds(x+4,y+17,cellW-8,cellH-18);
+    }
+    auto buttonY=getHeight()-68;
+    mutateButton.setBounds(30,buttonY,110,30);
+    chaosButton.setBounds(150,buttonY,110,30);
+    randomButton.setBounds(270,buttonY,130,30);
 }

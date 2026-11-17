@@ -2,30 +2,28 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 
-class TruckStationAudioProcessorEditor : public juce::AudioProcessorEditor,
-                                          private juce::Timer
+class TruckStationAudioProcessorEditor : public juce::AudioProcessorEditor, private juce::Timer
 {
 public:
     explicit TruckStationAudioProcessorEditor(TruckStationAudioProcessor&);
-    ~TruckStationAudioProcessorEditor() override { stopTimer(); }
+    ~TruckStationAudioProcessorEditor() override;
     void paint(juce::Graphics&) override;
     void resized() override;
+
 private:
-    void timerCallback() override;
-    void addKnob(juce::Slider&, const juce::String&);
-    void applyAttachments();
-
+    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+    using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
     TruckStationAudioProcessor& audioProcessor;
-    juce::Slider attack, release, color, dust, space, wobble, drive, sampleMix;
-    juce::ComboBox presets, wave;
-    juce::TextButton loadSample { "LOAD SAMPLE +" };
-    juce::Label sampleName;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachments[8];
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> waveAttachment;
-    juce::Random random;
-    float catPhase = 0.0f;
-    bool blink = false;
-    std::unique_ptr<juce::FileChooser> chooser;
+    juce::OwnedArray<juce::Slider> sliders;
+    juce::OwnedArray<juce::Label> labels;
+    std::vector<std::unique_ptr<SliderAttachment>> attachments;
+    juce::TextButton mutateButton { "MUTATE" }, chaosButton { "CHAOS" }, randomButton { "RANDOMIZE" };
+    juce::Label title, subtitle, status;
+    float activity = 0.0f;
+    int blink = 0;
 
+    void addKnob(juce::Component&, const juce::String&, const juce::String&, int, int, int, int);
+    void timerCallback() override;
+    void drawCat(juce::Graphics&, juce::Rectangle<float>, float);
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TruckStationAudioProcessorEditor)
 };

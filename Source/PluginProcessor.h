@@ -14,62 +14,39 @@ public:
 
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
-
-    const juce::String getName() const override { return "TRUCK STATION"; }
+    const juce::String getName() const override { return JucePlugin_Name; }
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
-    double getTailLengthSeconds() const override { return 2.0; }
+    double getTailLengthSeconds() const override { return 8.0; }
+
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
     void setCurrentProgram(int) override {}
-    const juce::String getProgramName(int) override { return {}; }
+    const juce::String getProgramName(int) override { return "TRUCK DEFAULT"; }
     void changeProgramName(int, const juce::String&) override {}
 
     void getStateInformation(juce::MemoryBlock&) override;
     void setStateInformation(const void*, int) override;
 
-    bool loadSample(const juce::File&);
-    juce::String getSampleName() const;
-    void setPreset(int index);
     juce::AudioProcessorValueTreeState parameters;
+    void randomizeSound(float amount, int seed = -1);
+    float getOutputActivity() const noexcept { return outputActivity.load(); }
 
 private:
-    class TruckSound : public juce::SynthesiserSound
-    {
-    public:
-        bool appliesToNote(int) override { return true; }
-        bool appliesToChannel(int) override { return true; }
-    };
-
-    class TruckVoice : public juce::SynthesiserVoice
-    {
-    public:
-        explicit TruckVoice(TruckStationAudioProcessor& owner);
-        bool canPlaySound(juce::SynthesiserSound*) override;
-        void startNote(int midiNote, float velocity, juce::SynthesiserSound*, int) override;
-        void stopNote(float velocity, bool allowTailOff) override;
-        void pitchWheelMoved(int) override {}
-        void controllerMoved(int, int) override {}
-        void renderNextBlock(juce::AudioBuffer<float>&, int startSample, int numSamples) override;
-    private:
-        TruckStationAudioProcessor& processor;
-        juce::ADSR envelope;
-        juce::ADSR::Parameters envParams;
-        double phase = 0.0;
-        double phaseDelta = 0.0;
-        double lfoPhase = 0.0;
-        float level = 0.0f;
-        int waveform = 0;
-    };
-
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-    juce::AudioFormatManager formatManager;
     juce::Synthesiser synth;
-    juce::String sampleName { "NO SAMPLE LOADED" };
-    juce::dsp::Reverb reverb;
+    juce::dsp::StateVariableTPTFilter<float> filterL, filterR;
+    juce::Reverb reverb; // (el reverb de juce_dsp no tiene processStereo)
+    juce::dsp::Chorus<float> chorus;
+    juce::dsp::Limiter<float> limiter;
+    juce::AudioBuffer<float> synthBuffer;
+    std::atomic<float> outputActivity { 0.0f };
     double currentSampleRate = 44100.0;
     juce::Random random;
+    int arpCounter = 0;
+    int arpDivider = 0;
+    juce::MidiBuffer heldMidi;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TruckStationAudioProcessor)
 };

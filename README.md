@@ -1,42 +1,49 @@
-# TRUCK STATION v1.0 — Plastic Sound Library
+# TRUCK STATION V2 — SOUND SYSTEM 002
 
-A first functional-in-design JUCE instrument plugin project (VST3 + Standalone), built as a hybrid synth/sample instrument.
+A JUCE-based VST3/Standalone synthesizer project. This version removes sample loading entirely and focuses on generated sound.
 
-## Current prototype features
-- MIDI-triggered polyphonic oscillator synth (sine, triangle, saw, square).
-- Load a WAV/AIFF sample as a playable sampler layer (root note C4 / MIDI 60).
-- 30 preset names in the browser, with 10 distinct parameter recipes repeated across the list for this early build.
-- Eight controls: Attack, Release, Color, Dust, Space, Wobble, Drive, Sample Mix.
-- Clay-inspired retro interface and animated sleepy clay cat.
-- Host-automatable parameters and saved parameter state.
+## Included in this source build
 
-## Important honest limitations
-- This is source code, not a compiled/verified VST3 binary.
-- The sample is currently layered with the synth voice; Sample Mix is a simple output gain/character control, not yet an independent sampler/synth crossfade.
-- The 30 browser entries currently map to 10 core sound recipes. They are not yet 30 professionally sampled instruments.
-- This is a basic oscillator engine; no wavetable, granular engine, sample slicing, or custom sample library yet.
-- Sample loading is for the current plugin session; the sample file path is not yet persisted with the project.
-- The current synthesis is a simple prototype and should be expanded/optimized before release.
+- Three-oscillator-style voice architecture (two main oscillators plus sub oscillator).
+- Selectable oscillator character: sine, saw, square, triangle, FM-like and wavetable-like shapes.
+- ADSR envelope controls.
+- Resonant low-pass filter.
+- Detune, sub level, FM amount, drive and LFO modulation.
+- Chorus, reverb, output control and limiter.
+- Mutate, Randomize and Chaos controls.
+- Host-automatable parameters through AudioProcessorValueTreeState.
+- Preset parameter state saved/restored by the host.
+- Dark Y2K / tribal-inspired interface and an audio-reactive clay-cat visualization.
+- No sampler and no sample-file loading.
+
+## Important scope notes
+
+This is a substantial **development prototype**, not a finished commercial instrument. The current build includes the core synthesis and modulation controls, but does not yet implement a true wavetable editor, a full modulation matrix, a working arpeggiator/step sequencer, preset browser/morph system, or per-effect routing. The `arp` parameters are reserved for the next engine pass. The cat currently reacts to output level (audio activity), not spectral pitch bands; its expression/shape reacts to the signal envelope.
+
+The project has not been compiled or tested in this environment. Please build it locally and share the first compiler error if one appears. Do not assume the ZIP is already a loadable VST3.
 
 ## Build on Windows
-1. Install Visual Studio 2022 with **Desktop development with C++**.
-2. Install CMake 3.22 or newer.
-3. Download JUCE 7 or JUCE 8 from https://juce.com/download/.
-4. Put the JUCE source folder next to this CMakeLists file and name it `JUCE`.
-5. Open PowerShell in this project folder and run:
 
+1. Install Visual Studio 2022 (or just use the included GitHub Actions workflow, no install needed) and select **Desktop development with C++**.
+2. Install CMake 3.22 or newer.
+3. Install Git.
+4. Open PowerShell in this folder.
+5. Configure (CMake downloads JUCE 8.0.6 automatically):
    ```powershell
-   cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+   cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+   ```
+6. Compile:
+   ```powershell
    cmake --build build --config Release
    ```
+7. The VST3 is created under the build tree, usually in:
+   `build/TRUCK_STATION_artefacts/Release/VST3/`
+8. Copy `TRUCK STATION.vst3` to:
+   `%COMMONPROGRAMFILES%\VST3`
+9. In FL Studio, open **Plugin Manager**, enable verification if needed, and rescan installed plugins.
 
-6. The plugin ends up in `build/TRUCK_STATION_artefacts/Release/VST3/TRUCK STATION.vst3` (it is a FOLDER, copy it whole).
-7. Open PowerShell **as Administrator** in this folder and run `./install_vst3.ps1` (copies it to `C:\Program Files\Common Files\VST3`).
-8. In FL Studio: Options > Manage plugins > Find installed plugins (enable "Verify plugins"). It appears under Installed > Instruments (or the VST3 section).
+## Notes
 
-## Next development milestones
-- Real 30–80 unique sound-design presets.
-- Sample/synth blend and sample root/key range controls.
-- User preset save/load browser.
-- Built-in original one-shot and multisample library.
-- Better filters, envelopes, modulation matrix, granular and sample slicing.
+- The first CMake configure needs an internet connection because JUCE is fetched from GitHub.
+- If CMake fails, copy the **first actual error** and the command output, not just the final summary line.
+- This project intentionally uses `FetchContent_MakeAvailable(JUCE)` and a single `juce_add_plugin` target; do not add a second project() or duplicate JUCE target declarations.
